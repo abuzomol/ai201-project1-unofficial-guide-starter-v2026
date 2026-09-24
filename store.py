@@ -63,7 +63,12 @@ class _OnnxEmbedder:
     def __init__(self):
         from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
 
-        self._ef = ONNXMiniLM_L6_V2()
+        # Pinned to CPU on purpose. Given no providers, Chroma hands ONNX
+        # Runtime every provider it can find, and on Apple Silicon that puts
+        # CoreML first — where this model fails to compile and every embedding
+        # call dies with "Non-zero status code ... CoreMLExecutionProvider".
+        # CPU is plenty for 384 dimensions and a corpus this size.
+        self._ef = ONNXMiniLM_L6_V2(preferred_providers=["CPUExecutionProvider"])
 
     def encode(self, texts, show_progress_bar: bool = False):
         return [vector.tolist() for vector in self._ef(list(texts))]
